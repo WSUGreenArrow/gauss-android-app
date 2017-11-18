@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="#fff">
+
+    <Button
+        android:id="@+id/find_network_btn"
+        android:layout_height="100dp"
+        android:layout_width="100dp"
+        android:background="@drawable/connect_to_network"
+        android:layout_marginTop="76dp"
+        android:layout_centerHorizontal="true"/>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:text="Connect to VTM"
+        android:id="@+id/textView4"
+        android:textColor="#000"
+        android:layout_below="@+id/find_network_btn"
+        android:layout_centerHorizontal="true" />
+
+    <Button
+        android:id="@+id/view_recordings_btn"
+        android:layout_height="100dp"
+        android:layout_width="100dp"
+        android:layout_marginTop="28dp"
+        android:background="@drawable/view_recordings"
+        android:layout_below="@+id/textView4"
+        android:layout_centerHorizontal="true" />
+    <TextView
+        android:layout_margin="5dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:textColor="#000"
+        android:text="View Recordings"
+        android:layout_below="@id/view_recordings_btn"
+        android:layout_centerHorizontal="true"/>
+
+
+    <Button
+        android:id="@+id/connected_view_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Connected To VTM View"
+        android:textColor="#fff"
+        android:background="#000"
+        android:layout_alignParentBottom="true"/>
+
+</RelativeLayout>

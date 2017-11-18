@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:background="#fff"
+    android:layout_height="fill_parent">
+
+
+
+    <Button
+        android:layout_marginTop="50dp"
+        android:id="@+id/view_recordings_btn"
+        android:layout_height="100dp"
+        android:layout_width="100dp"
+        android:layout_centerHorizontal="true"
+        android:background="@drawable/view_recordings"/>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:text="View Recorded Video"
+        android:textColor="#000"
+        android:layout_below="@id/view_recordings_btn"
+        android:layout_centerHorizontal="true"/>
+
+    <Button
+        android:id="@+id/record_video_btn"
+        android:layout_below="@+id/view_recordings_btn"
+        android:layout_height="90dp"
+        android:layout_width="100dp"
+        android:layout_marginTop="60dp"
+        android:layout_centerHorizontal="true"
+        android:background="@drawable/record_icon"/>
+    <TextView
+        android:layout_margin="5dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:textColor="#000"
+        android:text="Record A Video"
+        android:layout_below="@id/record_video_btn"
+        android:layout_centerHorizontal="true"/>
+
+    <Button
+        android:id="@+id/live_view_btn"
+        android:layout_below="@+id/record_video_btn"
+        android:layout_height="100dp"
+        android:layout_width="100dp"
+        android:layout_marginTop="60dp"
+        android:layout_centerHorizontal="true"
+        android:background="@drawable/live_view"/>
+    <TextView
+        android:layout_margin="5dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:text="Live View"
+        android:layout_below="@id/live_view_btn"
+        android:textColor="#000"
+        android:layout_centerHorizontal="true"/>
+
+
+
+</RelativeLayout>
