@@ -25,6 +25,11 @@
             android:textColor="@android:color/white"
             android:textSize="18sp" />
         -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="/left.sdp"/>
+
         <android.support.design.widget.TextInputLayout
             android:id="@+id/tilRemoteVideo"
             android:layout_width="match_parent"
@@ -32,16 +37,34 @@
             android:layout_marginBottom="5dp"
             android:layout_marginTop="5dp">
 
+            <!-- Left .sdp -->
             <EditText
-                android:id="@+id/etRemoteVideo"
+                android:id="@+id/etRemoteVideoLeft"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="远程视频 http:// rtsp://"
+                android:hint="Remote Video http:// rtsp://"
                 android:text="http://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_640x360.m4v"
                 android:inputType="textUri"
                 android:textSize="18sp" />
 
         </android.support.design.widget.TextInputLayout>
+
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="/right.sdp"/>
+
+
+        <!-- Right.sdp -->
+        <EditText
+            android:id="@+id/etRemoteVideoRight"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Remote Video http:// rtsp://"
+            android:text="http://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_640x360.m4v"
+            android:inputType="textUri"
+            android:textSize="18sp" />
 
         <Button
             android:id="@+id/btnRemoteVideo"

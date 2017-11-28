@@ -16,7 +16,8 @@ import com.downs.courtney.gaussapp.util.SystemUtil;
 
 public class LiveViewActivity extends AppCompatActivity {
     private TextInputLayout tilRemoteVideo;
-    private EditText etRemoteVideo;
+    private EditText etRemoteVideoLeft;
+    private EditText etRemoteVideoRight;
 
     private final static int PERMISSIONS_REQUEST = 0;
     private final static int VIDEO_REQUEST = 1;
@@ -27,6 +28,7 @@ public class LiveViewActivity extends AppCompatActivity {
         setContentView(R.layout.live_view_activity);
 
 
+        // TODO - this commented out stuff might be useful with displaying local video
 //        Button btnLocalVideo = (Button) findViewById(R.id.btnLocalVideo);
 //        btnLocalVideo.setOnClickListener(new View.OnClickListener() {
 //            @Override
@@ -49,21 +51,26 @@ public class LiveViewActivity extends AppCompatActivity {
 
         tilRemoteVideo = (TextInputLayout) findViewById(R.id.tilRemoteVideo);
 
-        etRemoteVideo = (EditText) findViewById(R.id.etRemoteVideo);
+        // Left and right .sdp files
+        etRemoteVideoLeft = (EditText) findViewById(R.id.etRemoteVideoLeft);
+        etRemoteVideoRight = (EditText) findViewById(R.id.etRemoteVideoRight);
 
         Button btnRemoteVideo = (Button) findViewById(R.id.btnRemoteVideo);
         btnRemoteVideo.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (etRemoteVideo.getText().toString().equals("")) {
+                if (etRemoteVideoLeft.getText().toString().equals("") ||
+                        etRemoteVideoRight.getText().toString().equals("")) {
                     tilRemoteVideo.setError("Remote video address can not be empty!");
                     return;
                 }
 
+                // Sharing the ViedoURL with an intent
                 Intent intent = new Intent();
                 intent.setClass(LiveViewActivity.this, PlayerActivity.class);
                 intent.putExtra("VideoType", "Remote");
-                intent.putExtra("VideoUrl", etRemoteVideo.getText().toString());
+                intent.putExtra("VideoUrlLeft", etRemoteVideoLeft.getText().toString());
+                intent.putExtra("VideoUrlRight", etRemoteVideoRight.getText().toString());
                 startActivity(intent);
             }
         });

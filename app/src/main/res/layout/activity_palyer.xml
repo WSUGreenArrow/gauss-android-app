@@ -3,14 +3,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:keepScreenOn="true"
-    android:background="@android:color/background_dark"
+    android:background="#fff"
     tools:context=".PlayerActivity">
 
     <FrameLayout
-        android:id="@+id/video_surface_frame"
-        android:layout_width="match_parent"
+        android:id="@+id/video_surface_frame_left"
+        android:layout_width="285dp"
         android:layout_height="match_parent"
-        android:layout_gravity="center"
+        android:layout_gravity="left"
+        android:background="#000"
         android:foregroundGravity="clip_horizontal|clip_vertical"
         tools:ignore="true">
 
@@ -18,25 +19,55 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout="@layout/surface_view"
-            android:id="@+id/surface_stub" />
+            android:id="@+id/surface_stub_left" />
 
         <ViewStub
             android:layout_width="1dp"
             android:layout_height="1dp"
             android:layout="@layout/surface_view"
-            android:id="@+id/subtitles_surface_stub" />
+            android:id="@+id/subtitles_surface_stub_left" />
 
         <ViewStub
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout="@layout/texture_view"
-            android:id="@+id/texture_stub" />
+            android:id="@+id/texture_stub_left" />
+
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/video_surface_frame_right"
+        android:layout_width="285dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="right"
+        android:background="#000"
+        android:foregroundGravity="clip_horizontal|clip_vertical"
+        tools:ignore="true">
+
+        <ViewStub
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout="@layout/surface_view"
+            android:id="@+id/surface_stub_right" />
+
+        <ViewStub
+            android:layout_width="1dp"
+            android:layout_height="1dp"
+            android:layout="@layout/surface_view"
+            android:id="@+id/subtitles_surface_stub_right" />
+
+        <ViewStub
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout="@layout/texture_view"
+            android:id="@+id/texture_stub_right" />
 
     </FrameLayout>
 
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        >
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -44,7 +75,9 @@
             android:layout_alignParentBottom="true"
             android:orientation="horizontal">
 
+ <!--
             <ImageView
+                android:visibility="gone"
                 android:id="@+id/imgPlay"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
@@ -55,6 +88,7 @@
                 android:contentDescription="播放控制" />
 
             <SeekBar
+                android:visibility="gone"
                 android:id="@+id/seekBarTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -67,6 +101,7 @@
                 android:thumb="@drawable/videoviews_seekbar_thumb" />
 
             <TextView
+                android:visibility="gone"
                 android:id="@+id/tvFullScreen"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -76,6 +111,7 @@
                 android:textColor="@android:color/white"
                 android:layout_margin="10dp"
                 android:textSize="20sp" />
+-->
 
         </LinearLayout>
     </RelativeLayout>
