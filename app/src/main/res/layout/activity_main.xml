@@ -42,13 +42,6 @@
         android:textSize="20sp" />
 
 
-    <Button
-        android:id="@+id/connected_view_btn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Connected To VTM View"
-        android:textColor="#fff"
-        android:background="#000"
-        android:layout_alignParentBottom="true"/>
+
 
 </RelativeLayout>
