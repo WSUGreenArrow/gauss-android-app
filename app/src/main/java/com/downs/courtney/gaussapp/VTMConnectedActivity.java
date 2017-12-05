@@ -82,7 +82,7 @@ public class VTMConnectedActivity extends AppCompatActivity {
         liveView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent startIntent = new Intent(VTMConnectedActivity.this, LiveViewActivity.class);
+                Intent startIntent = new Intent(VTMConnectedActivity.this, PlayerActivity.class);
                 startActivity(startIntent);
             }
         });

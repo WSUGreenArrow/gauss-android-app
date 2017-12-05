@@ -12,12 +12,14 @@ package com.downs.courtney.gaussapp;
 
 import android.annotation.TargetApi;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.PixelFormat;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.SurfaceView;
@@ -29,6 +31,8 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+
+import com.downs.courtney.gaussapp.util.SystemUtil;
 
 import org.videolan.libvlc.IVLCVout;
 import org.videolan.libvlc.LibVLC;
@@ -51,6 +55,8 @@ public class PlayerActivity extends AppCompatActivity implements IVLCVout.OnNewV
     private static int CURRENT_SIZE = SURFACE_BEST_FIT;
 
 
+    private final String LEFT_URL = "http://10.107.101.1:8080/left.sdp";
+    private final String RIGHT_URL = "http://10.107.101.1:8080/right.sdp";
 
     // Left
     private FrameLayout mVideoSurfaceFrameLeft = null;
@@ -89,6 +95,8 @@ public class PlayerActivity extends AppCompatActivity implements IVLCVout.OnNewV
     //private SeekBar seekBarTime;
     //private SeekBar.OnSeekBarChangeListener onTimeSeekBarChangeListener;
 
+    private final static int PERMISSIONS_REQUEST = 0;
+    private final static int VIDEO_REQUEST = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -265,28 +273,13 @@ public class PlayerActivity extends AppCompatActivity implements IVLCVout.OnNewV
 
         // Media media = new Media(mLibVLC, Uri.parse(SAMPLE_URL));
 
-        // Using an intent to get the VideoUrl entered in previous screen. (LiveViewActivity)
+
         Media mediaLeft;
         Media mediaRight;
-        Intent intent = getIntent();
-        if (intent.getStringExtra("VideoType").equals("Local")) {
- 
-            /**
-             * VTM Network: PurpleBow and ip address 10.107.101.1
-             *
-             * VTM Username: greenarrow
-             * VTM Password: irrelevantart
-             *
-             *
-             */
-            // http://192.168.43.111:8080/left.sdp    http://192.168.43.111:8080/right.sdp
 
-            mediaLeft = new Media(mLibVLCLeft, intent.getStringExtra("VideoUrlLeft"));
-            mediaRight = new Media(mLibVLCRight, intent.getStringExtra("VideoUrlRight"));
-        } else {
-            mediaLeft = new Media(mLibVLCLeft, Uri.parse(intent.getStringExtra("VideoUrlLeft")));
-            mediaRight = new Media(mLibVLCRight, Uri.parse(intent.getStringExtra("VideoUrlRight")));
-        }
+
+        mediaLeft = new Media(mLibVLCLeft, Uri.parse(LEFT_URL));
+        mediaRight = new Media(mLibVLCRight, Uri.parse(RIGHT_URL));
 
 
 
@@ -300,7 +293,7 @@ public class PlayerActivity extends AppCompatActivity implements IVLCVout.OnNewV
                 private final Runnable mRunnable = new Runnable() {
                     @Override
                     public void run() {
-                       // updateVideoSurfaces();                                      // TODO - Downs
+                        // updateVideoSurfaces();                                      // TODO - Downs
                     }
                 };
 
@@ -616,4 +609,8 @@ public class PlayerActivity extends AppCompatActivity implements IVLCVout.OnNewV
 //        mVideoSarDen = sarDen;
 //        updateVideoSurfaces();
     }
+
+
+
+
 }
