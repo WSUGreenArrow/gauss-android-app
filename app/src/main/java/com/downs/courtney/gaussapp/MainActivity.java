@@ -1,6 +1,7 @@
 package com.downs.courtney.gaussapp;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
@@ -36,6 +37,20 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Intent startIntent = new Intent(MainActivity.this, VTMConnectedActivity.class);
                 startActivity(startIntent);
+            }
+        });
+        Button viewRecording = (Button)findViewById(R.id.view_recordings_btn);
+        viewRecording.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("/sdcard/download/video.mp4"));
+//                intent.setDataAndType(Uri.parse("/sdcard/download/video.mp4"), "video/mp4");
+//                startActivity(intent);
+                Intent intent = new Intent();
+                intent.setAction(android.content.Intent.ACTION_VIEW);
+                intent.setType("video/*");
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
             }
         });
 

@@ -30,15 +30,16 @@
         android:background="@drawable/view_recordings"
         android:layout_below="@+id/textView4"
         android:layout_centerHorizontal="true" />
+
     <TextView
-        android:layout_margin="5dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="20sp"
-        android:textColor="#000"
-        android:text="View Recordings"
         android:layout_below="@id/view_recordings_btn"
-        android:layout_centerHorizontal="true"/>
+        android:layout_centerHorizontal="true"
+        android:layout_margin="5dp"
+        android:text="View Recorded Video"
+        android:textColor="#000"
+        android:textSize="20sp" />
 
 
     <Button
