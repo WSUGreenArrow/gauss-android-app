@@ -115,4 +115,14 @@
 
         </LinearLayout>
     </RelativeLayout>
+
+    <ToggleButton
+        android:id="@+id/toggle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ToggleButton"
+        android:layout_marginTop="10dp"
+        android:layout_below="@id/view_recordings_btn"
+        android:layout_alignLeft="@+id/live_view_btn"
+        android:layout_alignStart="@+id/live_view_btn" />
 </FrameLayout>

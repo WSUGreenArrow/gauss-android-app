@@ -39,8 +39,8 @@ public class MainActivity extends AppCompatActivity {
             Intent startIntent0 = new Intent(MainActivity.this, VTMConnectedActivity.class);
             startActivity(startIntent0);
 
-            Intent startIntent = new Intent(MainActivity.this, PlayerActivity.class);
-            startActivity(startIntent);
+            //Intent startIntent = new Intent(MainActivity.this, PlayerActivity.class);
+            //startActivity(startIntent);
 
         }else{
 

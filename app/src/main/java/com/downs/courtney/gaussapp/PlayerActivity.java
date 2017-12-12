@@ -10,35 +10,47 @@
 
 package com.downs.courtney.gaussapp;
 
+import android.Manifest;
 import android.annotation.TargetApi;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.graphics.PixelFormat;
+import android.hardware.display.DisplayManager;
+import android.hardware.display.VirtualDisplay;
+import android.media.MediaRecorder;
+import android.media.projection.MediaProjection;
+import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
+import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.SparseIntArray;
+import android.view.Surface;
 import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.ViewStub;
 import android.widget.FrameLayout;
-import android.widget.ImageView;
-import android.widget.SeekBar;
-import android.widget.TextView;
-
-import com.downs.courtney.gaussapp.util.SystemUtil;
+import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import org.videolan.libvlc.IVLCVout;
 import org.videolan.libvlc.LibVLC;
 import org.videolan.libvlc.Media;
 import org.videolan.libvlc.MediaPlayer;
-
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 
 public class PlayerActivity extends AppCompatActivity implements IVLCVout.OnNewVideoLayoutListener {
@@ -46,15 +58,6 @@ public class PlayerActivity extends AppCompatActivity implements IVLCVout.OnNewV
     private static final boolean ENABLE_SUBTITLES = true;
     private static final String TAG = "PlayerActivity";
     private static final String SAMPLE_URL = "http://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_640x360.m4v";
-    private static final int SURFACE_BEST_FIT = 0;
-    private static final int SURFACE_FIT_SCREEN = 1;
-    private static final int SURFACE_FILL = 2;
-    private static final int SURFACE_16_9 = 3;
-    private static final int SURFACE_4_3 = 4;
-    private static final int SURFACE_ORIGINAL = 5;
-    private static int CURRENT_SIZE = SURFACE_BEST_FIT;
-
-
     private final String LEFT_URL = "http://10.107.101.1:8080/left.sdp";
     private final String RIGHT_URL = "http://10.107.101.1:8080/right.sdp";
 
@@ -69,40 +72,54 @@ public class PlayerActivity extends AppCompatActivity implements IVLCVout.OnNewV
     private FrameLayout mVideoSurfaceFrameRight = null;
     private SurfaceView mVideoSurfaceRight = null;
     private SurfaceView mSubtitlesSurfaceRight = null;
-    private View mVideoViewRight = null;
     private TextureView mVideoTextureRight = null;
-
-
     private final Handler mHandler = new Handler();
     private View.OnLayoutChangeListener mOnLayoutChangeListener = null;
-
     private LibVLC mLibVLCLeft = null;
     private LibVLC mLibVLCRight = null;
-
     private MediaPlayer mMediaPlayerLeft = null;
     private MediaPlayer mMediaPlayerRight = null;
-
-    private int mVideoHeight = 0;
-    private int mVideoWidth = 0;
-    private int mVideoVisibleHeight = 0;
-    private int mVideoVisibleWidth = 0;
-    private int mVideoSarNum = 0;
-    private int mVideoSarDen = 0;
+    private final String SHARED_PREF_KEY = "SHARED_PREF_KEY";
 
 
-    //private ImageView imgPlay;
-    //private TextView tvFullScreen;
-    //private SeekBar seekBarTime;
-    //private SeekBar.OnSeekBarChangeListener onTimeSeekBarChangeListener;
 
-    private final static int PERMISSIONS_REQUEST = 0;
-    private final static int VIDEO_REQUEST = 1;
+
+    // Stuff for recording video below
+    private static final int REQUEST_CODE = 1000;
+    private int mScreenDensity;
+    private MediaProjectionManager mProjectionManager;
+    private static final int DISPLAY_WIDTH = 720;
+    private static final int DISPLAY_HEIGHT = 1280;
+    private MediaProjection mMediaProjection;
+    private VirtualDisplay mVirtualDisplay;
+    private MediaProjectionCallback mMediaProjectionCallback;
+    private ToggleButton mToggleButton;
+    private MediaRecorder mMediaRecorder;
+    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+    private static final int REQUEST_PERMISSIONS = 10;
+    private static File video = new File("/sdcard/download/GaussApp/video.mp4");
+    private static int i = 0;
+    public static final int RESULT_GALLERY = 0;
+
+    static {
+        ORIENTATIONS.append(Surface.ROTATION_0, 90);
+        ORIENTATIONS.append(Surface.ROTATION_90, 0);
+        ORIENTATIONS.append(Surface.ROTATION_180, 270);
+        ORIENTATIONS.append(Surface.ROTATION_270, 180);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_palyer);
+
+
+        new File("/sdcard/download/GaussApp").mkdir();
+
+        // Check if record flag is on
+        SharedPreferences sharedPref = this.getSharedPreferences(SHARED_PREF_KEY, Context.MODE_PRIVATE);
+        String actualValue = sharedPref.getString("RECORD_KEY", "NO_RECORD");
+
 
         final ArrayList<String> args = new ArrayList<>();
         args.add("-vvv");
@@ -113,78 +130,68 @@ public class PlayerActivity extends AppCompatActivity implements IVLCVout.OnNewV
         mMediaPlayerRight = new MediaPlayer(mLibVLCRight);
 
         initVLCView();
-        initInfoView();
-    }
 
-    private void initInfoView() {
-        //imgPlay = (ImageView) findViewById(R.id.imgPlay);
-        //tvFullScreen = (TextView) findViewById(R.id.tvFullScreen);
-        //seekBarTime = (SeekBar) findViewById(R.id.seekBarTime);
 
-        /*
-        imgPlay.setOnClickListener(new View.OnClickListener() {
+
+        DisplayMetrics metrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        mScreenDensity = metrics.densityDpi;
+
+        mMediaRecorder = new MediaRecorder();
+
+        mProjectionManager = (MediaProjectionManager) getSystemService
+                (Context.MEDIA_PROJECTION_SERVICE);
+
+        mToggleButton = (ToggleButton) findViewById(R.id.toggle);
+        mToggleButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mMediaPlayerLeft.isPlaying()) {
-                    mMediaPlayerLeft.pause();
-                    imgPlay.setBackgroundResource(R.drawable.videoviewx_play);
-                } else {
-                    mMediaPlayerLeft.play();
-                    imgPlay.setBackgroundResource(R.drawable.videoviewx_pause);
-                }
-            }
-        });
+                Toast.makeText(getBaseContext(), "In the loop", Toast.LENGTH_LONG).show();
 
-        tvFullScreen.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if ("Full Screen".equals(tvFullScreen.getText().toString())) {
-                    tvFullScreen.setText("退出");
-                    WindowManager.LayoutParams params = getWindow().getAttributes();
-                    params.flags |= WindowManager.LayoutParams.FLAG_FULLSCREEN;
-                    getWindow().setAttributes(params);
-                    getWindow().addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
-                } else {
-                    tvFullScreen.setText("Full Screen");
-                    WindowManager.LayoutParams params = getWindow().getAttributes();
-                    params.flags &= (~WindowManager.LayoutParams.FLAG_FULLSCREEN);
-                    getWindow().setAttributes(params);
-                    getWindow().clearFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
-                }
-            }
-        });
 
-        seekBarTime.setMax(1000);
-        onTimeSeekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                try {
-                    if (fromUser) {
-                        if (mMediaPlayerLeft.getLength() <= 0) {
-                            return;
-                        }
-                        mMediaPlayerLeft.setTime(progress * mMediaPlayerLeft.getLength() / 1000);
-                        //tvCurrentTime.setText(SystemUtil.getMediaTime(progress));
+
+                if (ContextCompat.checkSelfPermission(PlayerActivity.this,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE) + ContextCompat
+                        .checkSelfPermission(PlayerActivity.this,
+                                Manifest.permission.RECORD_AUDIO)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    if (ActivityCompat.shouldShowRequestPermissionRationale
+                            (PlayerActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) ||
+                            ActivityCompat.shouldShowRequestPermissionRationale
+                                    (PlayerActivity.this, Manifest.permission.RECORD_AUDIO)) {
+                        mToggleButton.setChecked(false);
+                        Snackbar.make(findViewById(android.R.id.content), R.string.label_permissions,
+                                Snackbar.LENGTH_INDEFINITE).setAction("ENABLE",
+                                new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        ActivityCompat.requestPermissions(PlayerActivity.this,
+                                                new String[]{Manifest.permission
+                                                        .WRITE_EXTERNAL_STORAGE, Manifest.permission.RECORD_AUDIO},
+                                                REQUEST_PERMISSIONS);
+                                    }
+                                }).show();
+                    } else {
+                        ActivityCompat.requestPermissions(PlayerActivity.this,
+                                new String[]{Manifest.permission
+                                        .WRITE_EXTERNAL_STORAGE, Manifest.permission.RECORD_AUDIO},
+                                REQUEST_PERMISSIONS);
                     }
-                } catch (Exception e) {
-                    Log.d("vlc-time", e.toString());
+                } else {
+                    onToggleScreenShare(v);
                 }
             }
+        });
 
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
 
-            }
 
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
+        if(!actualValue.equals("RECORD")){
+            // Make invisible when not recording
+            mToggleButton.setVisibility(View.GONE);
 
-            }
-        };
+        }
 
-        seekBarTime.setOnSeekBarChangeListener(onTimeSeekBarChangeListener);
 
-        */
     }
 
 
@@ -221,11 +228,11 @@ public class PlayerActivity extends AppCompatActivity implements IVLCVout.OnNewV
                 mSubtitlesSurfaceRight.setZOrderMediaOverlay(true);
                 mSubtitlesSurfaceRight.getHolder().setFormat(PixelFormat.TRANSLUCENT);
             }
-            mVideoViewRight = mVideoSurfaceLeft;
+
         } else {
             ViewStub stub = (ViewStub) findViewById(R.id.texture_stub_right);
             mVideoTextureRight = (TextureView) stub.inflate();
-            mVideoViewRight = mVideoTextureLeft;
+
         }
 
 
@@ -239,10 +246,11 @@ public class PlayerActivity extends AppCompatActivity implements IVLCVout.OnNewV
         mMediaPlayerLeft.release();
         mLibVLCLeft.release();
 
-
         // Right
         mMediaPlayerRight.release();
         mLibVLCRight.release();
+
+        destroyMediaProjection();
     }
 
     @Override
@@ -278,8 +286,8 @@ public class PlayerActivity extends AppCompatActivity implements IVLCVout.OnNewV
         Media mediaRight;
 
 
-        mediaLeft = new Media(mLibVLCLeft, Uri.parse(LEFT_URL));
-        mediaRight = new Media(mLibVLCRight, Uri.parse(RIGHT_URL));
+        mediaLeft = new Media(mLibVLCLeft, Uri.parse(LEFT_URL));// SAMPLE_URL
+        mediaRight = new Media(mLibVLCRight, Uri.parse(RIGHT_URL));// SAMPLE_URL
 
 
 
@@ -293,7 +301,6 @@ public class PlayerActivity extends AppCompatActivity implements IVLCVout.OnNewV
                 private final Runnable mRunnable = new Runnable() {
                     @Override
                     public void run() {
-                        // updateVideoSurfaces();                                      // TODO - Downs
                     }
                 };
 
@@ -320,7 +327,6 @@ public class PlayerActivity extends AppCompatActivity implements IVLCVout.OnNewV
                 private final Runnable mRunnable = new Runnable() {
                     @Override
                     public void run() {
-                        // updateVideoSurfaces();                                      // TODO - Downs
                     }
                 };
 
@@ -398,205 +404,6 @@ public class PlayerActivity extends AppCompatActivity implements IVLCVout.OnNewV
 
 
 
-//    private void changeMediaPlayerLayout(int displayW, int displayH) {
-//        /* Change the video placement using the MediaPlayer API */
-//        switch (CURRENT_SIZE) {
-//            case SURFACE_BEST_FIT:
-//                mMediaPlayerLeft.setAspectRatio(null);
-//                mMediaPlayerLeft.setScale(0);
-//
-//                mMediaPlayerRight.setAspectRatio(null);
-//                mMediaPlayerRight.setScale(0);
-//                break;
-//            case SURFACE_FIT_SCREEN:
-//            case SURFACE_FILL: {
-//                Media.VideoTrack vtrack = mMediaPlayerLeft.getCurrentVideoTrack();
-//                if (vtrack == null)
-//                    return;
-//                final boolean videoSwapped = vtrack.orientation == Media.VideoTrack.Orientation.LeftBottom
-//                        || vtrack.orientation == Media.VideoTrack.Orientation.RightTop;
-//                if (CURRENT_SIZE == SURFACE_FIT_SCREEN) {
-//                    int videoW = vtrack.width;
-//                    int videoH = vtrack.height;
-//
-//                    if (videoSwapped) {
-//                        int swap = videoW;
-//                        videoW = videoH;
-//                        videoH = swap;
-//                    }
-//                    if (vtrack.sarNum != vtrack.sarDen)
-//                        videoW = videoW * vtrack.sarNum / vtrack.sarDen;
-//
-//                    float ar = videoW / (float) videoH;
-//                    float dar = displayW / (float) displayH;
-//
-//                    float scale;
-//                    if (dar >= ar)
-//                        scale = displayW / (float) videoW; /* horizontal */
-//                    else
-//                        scale = displayH / (float) videoH; /* vertical */
-//                    mMediaPlayerLeft.setScale(scale);
-//                    mMediaPlayerLeft.setAspectRatio(null);
-//
-//                    mMediaPlayerRight.setScale(scale);
-//                    mMediaPlayerRight.setAspectRatio(null);
-//
-//                } else {
-//                    mMediaPlayerLeft.setScale(0);
-//                    mMediaPlayerLeft.setAspectRatio(!videoSwapped ? "" + displayW + ":" + displayH
-//                            : "" + displayH + ":" + displayW);
-//
-//                    mMediaPlayerRight.setScale(0);
-//                    mMediaPlayerRight.setAspectRatio(!videoSwapped ? "" + displayW + ":" + displayH
-//                            : "" + displayH + ":" + displayW);
-//                }
-//                break;
-//            }
-//            case SURFACE_16_9:
-//                mMediaPlayerLeft.setAspectRatio("16:9");
-//                mMediaPlayerLeft.setScale(0);
-//
-//                mMediaPlayerRight.setAspectRatio("16:9");
-//                mMediaPlayerRight.setScale(0);
-//
-//                break;
-//            case SURFACE_4_3:
-//                mMediaPlayerLeft.setAspectRatio("4:3");
-//                mMediaPlayerLeft.setScale(0);
-//
-//                mMediaPlayerRight.setAspectRatio("4:3");
-//                mMediaPlayerRight.setScale(0);
-//                break;
-//            case SURFACE_ORIGINAL:
-//                mMediaPlayerLeft.setAspectRatio(null);
-//                mMediaPlayerLeft.setScale(1);
-//
-//                mMediaPlayerRight.setAspectRatio(null);
-//                mMediaPlayerRight.setScale(1);
-//                break;
-//        }
-//    }
-
-//    private void updateVideoSurfaces() {
-//        int sw = getWindow().getDecorView().getWidth();
-//        int sh = getWindow().getDecorView().getHeight();
-//
-//        // sanity check
-//        if (sw * sh == 0) {
-//            Log.e(TAG, "Invalid surface size");
-//            return;
-//        }
-//
-//        mMediaPlayerLeft.getVLCVout().setWindowSize(sw, sh);
-//        mMediaPlayerRight.getVLCVout().setWindowSize(sw, sh);
-//
-//        ViewGroup.LayoutParams lp = mVideoViewLeft.getLayoutParams();
-//        if (mVideoWidth * mVideoHeight == 0) {
-//            /* Case of OpenGL vouts: handles the placement of the video using MediaPlayer API */
-//            lp.width = ViewGroup.LayoutParams.MATCH_PARENT;
-//            lp.height = ViewGroup.LayoutParams.MATCH_PARENT;
-//            mVideoViewLeft.setLayoutParams(lp);
-//            mVideoViewRight.setLayoutParams(lp);
-//
-//            lp = mVideoSurfaceFrameLeft.getLayoutParams();
-//            lp.width = ViewGroup.LayoutParams.MATCH_PARENT;
-//            lp.height = ViewGroup.LayoutParams.MATCH_PARENT;
-//            mVideoSurfaceFrameLeft.setLayoutParams(lp);
-//            mVideoSurfaceFrameRight.setLayoutParams(lp);
-//          //  changeMediaPlayerLayout(sw, sh);                             // TODO - Downs
-//            return;
-//        }
-//
-//        if (lp.width == lp.height && lp.width == ViewGroup.LayoutParams.MATCH_PARENT) {
-//            /* We handle the placement of the video using Android View LayoutParams */
-//            mMediaPlayerLeft.setAspectRatio(null);
-//            mMediaPlayerLeft.setScale(0);
-//
-//            mMediaPlayerRight.setAspectRatio(null);
-//            mMediaPlayerRight.setScale(0);
-//
-//        }
-//
-//        double dw = sw, dh = sh;
-//        final boolean isPortrait = getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT;
-//
-//        if (sw > sh && isPortrait || sw < sh && !isPortrait) {
-//            dw = sh;
-//            dh = sw;
-//        }
-//
-//        // compute the aspect ratio
-//        double ar, vw;
-//        if (mVideoSarDen == mVideoSarNum) {
-//            /* No indication about the density, assuming 1:1 */
-//            vw = mVideoVisibleWidth;
-//            ar = (double) mVideoVisibleWidth / (double) mVideoVisibleHeight;
-//        } else {
-//            /* Use the specified aspect ratio */
-//            vw = mVideoVisibleWidth * (double) mVideoSarNum / mVideoSarDen;
-//            ar = vw / mVideoVisibleHeight;
-//        }
-//
-//        // compute the display aspect ratio
-//        double dar = dw / dh;
-//
-//        switch (CURRENT_SIZE) {
-//            case SURFACE_BEST_FIT:
-//                if (dar < ar)
-//                    dh = dw / ar;
-//                else
-//                    dw = dh * ar;
-//                break;
-//            case SURFACE_FIT_SCREEN:
-//                if (dar >= ar)
-//                    dh = dw / ar; /* horizontal */
-//                else
-//                    dw = dh * ar; /* vertical */
-//                break;
-//            case SURFACE_FILL:
-//                break;
-//            case SURFACE_16_9:
-//                ar = 16.0 / 9.0;
-//                if (dar < ar)
-//                    dh = dw / ar;
-//                else
-//                    dw = dh * ar;
-//                break;
-//            case SURFACE_4_3:
-//                ar = 4.0 / 3.0;
-//                if (dar < ar)
-//                    dh = dw / ar;
-//                else
-//                    dw = dh * ar;
-//                break;
-//            case SURFACE_ORIGINAL:
-//                dh = mVideoVisibleHeight;
-//                dw = vw;
-//                break;
-//        }
-//
-//        // set display size
-//        lp.width = (int) Math.ceil(dw * mVideoWidth / mVideoVisibleWidth);
-//        lp.height = (int) Math.ceil(dh * mVideoHeight / mVideoVisibleHeight);
-//        mVideoViewLeft.setLayoutParams(lp);
-//        mVideoViewRight.setLayoutParams(lp);
-//        if (mSubtitlesSurfaceLeft != null)
-//            mSubtitlesSurfaceLeft.setLayoutParams(lp);
-//            mSubtitlesSurfaceRight.setLayoutParams(lp);
-//
-//        // set frame size (crop if necessary)
-//        lp = mVideoSurfaceFrameLeft.getLayoutParams();
-//        lp.width = (int) Math.floor(dw);
-//        lp.height = (int) Math.floor(dh);
-//        mVideoSurfaceFrameLeft.setLayoutParams(lp);
-//        mVideoSurfaceFrameRight.setLayoutParams(lp);
-//
-//        mVideoViewLeft.invalidate();
-//        mVideoViewRight.invalidate();
-//        if (mSubtitlesSurfaceLeft != null)
-//            mSubtitlesSurfaceLeft.invalidate();
-//            mSubtitlesSurfaceRight.invalidate();
-//    }
 
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Override
@@ -611,6 +418,144 @@ public class PlayerActivity extends AppCompatActivity implements IVLCVout.OnNewV
     }
 
 
+    @Override
+    @TargetApi(21)  public void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        if (requestCode != REQUEST_CODE) {
+            Log.e(TAG, "Unknown request code: " + requestCode);
+            return;
+        }
+        if (resultCode != RESULT_OK) {
+            Toast.makeText(this,
+                    "Screen Cast Permission Denied", Toast.LENGTH_SHORT).show();
+            mToggleButton.setChecked(false);
+            return;
+        }
+        mMediaProjectionCallback = new MediaProjectionCallback();
+        mMediaProjection = mProjectionManager.getMediaProjection(resultCode, data);
+        mMediaProjection.registerCallback(mMediaProjectionCallback, null);
+        mVirtualDisplay = createVirtualDisplay();
+        mMediaRecorder.start();
+    }
+
+    public void onToggleScreenShare(View view) {
+        if (((ToggleButton) view).isChecked()) {
+            initRecorder();
+            shareScreen();
+        } else {
+            mMediaRecorder.stop();
+            mMediaRecorder.reset();
+            Log.v(TAG, "Stopping Recording");
+            stopScreenSharing();
+        }
+    }
+
+    @TargetApi(21)  private void shareScreen() {
+        if (mMediaProjection == null) {
+            startActivityForResult(mProjectionManager.createScreenCaptureIntent(), REQUEST_CODE);
+            return;
+        }
+        mVirtualDisplay = createVirtualDisplay();
+        mMediaRecorder.start();
+    }
+
+    @TargetApi(21) private VirtualDisplay createVirtualDisplay() {
+        return mMediaProjection.createVirtualDisplay("MainActivity",
+                DISPLAY_WIDTH, DISPLAY_HEIGHT, mScreenDensity,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                mMediaRecorder.getSurface(), null /*Callbacks*/, null
+                /*Handler*/);
+    }
+
+    private void initRecorder() {
+        try {
+            mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+            mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
+            mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+            i = 0 + (int)(Math.random() * 10000000);
+            mMediaRecorder.setOutputFile(Environment
+                    .getExternalStoragePublicDirectory(Environment
+                            .DIRECTORY_DOWNLOADS) + "/GaussApp/video" + i + ".mp4");
+            i = 0 + (int)(Math.random() * 10000000);
+
+            mMediaRecorder.setVideoSize(DISPLAY_WIDTH, DISPLAY_HEIGHT);
+            mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
+            mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+            mMediaRecorder.setVideoEncodingBitRate(512 * 1000);
+            mMediaRecorder.setVideoFrameRate(30);
+            int rotation = getWindowManager().getDefaultDisplay().getRotation();
+            int orientation = ORIENTATIONS.get(rotation + 90);
+            mMediaRecorder.setOrientationHint(orientation);
+            mMediaRecorder.prepare();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @TargetApi(21) private class MediaProjectionCallback extends MediaProjection.Callback {
+        @Override
+        public void onStop() {
+            if (mToggleButton.isChecked()) {
+                mToggleButton.setChecked(false);
+                mMediaRecorder.stop();
+                mMediaRecorder.reset();
+                Log.v(TAG, "Recording Stopped");
+            }
+            mMediaProjection = null;
+            stopScreenSharing();
+        }
+    }
+
+    @TargetApi(21) private void stopScreenSharing() {
+        if (mVirtualDisplay == null) {
+            return;
+        }
+        mVirtualDisplay.release();
+        //mMediaRecorder.release(); //If used: mMediaRecorder object cannot
+        // be reused again
+        destroyMediaProjection();
+    }
+
+    @TargetApi(21) private void destroyMediaProjection() {
+        if (mMediaProjection != null) {
+            mMediaProjection.unregisterCallback(mMediaProjectionCallback);
+            mMediaProjection.stop();
+            mMediaProjection = null;
+        }
+        Log.i(TAG, "MediaProjection Stopped");
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String permissions[],
+                                           @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case REQUEST_PERMISSIONS: {
+                if ((grantResults.length > 0) && (grantResults[0] +
+                        grantResults[1]) == PackageManager.PERMISSION_GRANTED) {
+                    onToggleScreenShare(mToggleButton);
+                } else {
+                    mToggleButton.setChecked(false);
+                    Snackbar.make(findViewById(android.R.id.content), R.string.label_permissions,
+                            Snackbar.LENGTH_INDEFINITE).setAction("ENABLE",
+                            new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    Intent intent = new Intent();
+                                    intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                                    intent.addCategory(Intent.CATEGORY_DEFAULT);
+                                    intent.setData(Uri.parse("package:" + getPackageName()));
+                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                    intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+                                    intent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+                                    startActivity(intent);
+                                }
+                            }).show();
+                }
+                return;
+            }
+        }
+    }
 
 
 }
